@@ -1,0 +1,10 @@
+#Data
+Dataset/
+
+#Environment files
+.venv/
+
+#OS-specific
+.DS_Store
+__MACOSX/
+Thumbs.db
