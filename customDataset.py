@@ -130,10 +130,11 @@ def HandleMaskConversion(inputMask):
 
 
 class imageLoaderDataset(torch.utils.data.Dataset):
-	def __init__(self, dataPairs,skipAugments=False):
+	def __init__(self, dataPairs,skipAugments=False,targetRes=128):
 		#Initialization
 		self.dataPairs = dataPairs
 		self.skipAugments=skipAugments
+		self.targetRes=targetRes
 
 
 	def __len__(self):
@@ -148,7 +149,7 @@ class imageLoaderDataset(torch.utils.data.Dataset):
 				loadedMask=loadIm(self.dataPairs[index][1])
 
 				#Resize/crop both
-				loadedImage,loadedMask=resizeImage(loadedImage,loadedMask)
+				loadedImage,loadedMask=resizeImage(loadedImage,loadedMask,targetWidth=self.targetRes,targetHeight=self.targetRes)
 
 				#Adjust image range to -1,1
 				loadedImage=(loadedImage/127.5)-1.0
