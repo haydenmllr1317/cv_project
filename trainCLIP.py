@@ -12,6 +12,8 @@ from pathlib import Path
 import clip
 import numpy as np
 
+import random
+
 #TODO:
 #	proper eval loss tracking
 #	lr scheduling?
@@ -45,18 +47,29 @@ def test():
 
 	clip_image_norm=tv_t.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
 
+	#Create train/dev splits with a 6:1 ratio
+	dataPairs_Train=get_files_in_folder("Dataset/TrainVal/color")
+	dataPairs_Train.sort()
+	random.seed(0)
+	random.shuffle(dataPairs_Train)
+	dataPairs_Dev=dataPairs_Train[:len(dataPairs_Train)//7]
+	dataPairs_Train=dataPairs_Train[len(dataPairs_Train)//7:]
+
 	#put toghether data:
-	dataPairPaths=get_files_in_folder("Dataset/TrainVal/color")
-	for i in range(len(dataPairPaths)):
+	for i in range(len(dataPairs_Train)):
 		#Labels seem to always be pngs
-		labelImageName=Path(dataPairPaths[i]).stem+".png"
-		dataPairPaths[i]=(dataPairPaths[i],f"Dataset/TrainVal/label/{labelImageName}")
+		labelImageName=Path(dataPairs_Train[i]).stem+".png"
+		dataPairs_Train[i]=(dataPairs_Train[i],f"Dataset/TrainVal/label/{labelImageName}")
+	for i in range(len(dataPairs_Dev)):
+		#Labels seem to always be pngs
+		labelImageName=Path(dataPairs_Dev[i]).stem+".png"
+		dataPairs_Dev[i]=(dataPairs_Dev[i],f"Dataset/TrainVal/label/{labelImageName}")
 
 
 	num_epochs = 100
 	batch_size = 16
 
-	train_dataset = imageLoaderDataset(dataPairPaths,targetRes=input_resolution)
+	train_dataset = imageLoaderDataset(dataPairs_Train,targetRes=input_resolution)
 	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,collate_fn=custom_collate,drop_last=True)
 
 	globalOptimStep=0
@@ -100,7 +113,7 @@ def test():
 
 			#Log every 10 optimizer steps
 			if(globalOptimStep%10==0):
-				print(f'step {globalOptimStep}: Loss: {loss.item():.4f}   ({(batch_idx*batch_size/len(dataPairPaths))*100:.2f}% +{epoch})')
+				print(f'step {globalOptimStep}: Loss: {loss.item():.4f}   ({(batch_idx*batch_size/len(dataPairs_Train))*100:.2f}% +{epoch})')
 
 				#with torch.no_grad():
 				#	mean_ac = torch.mean((torch.abs(torch.argmax(outputStack, dim=1)-torch.argmax(outputs, dim=1))>0.5).to(torch.float32))
