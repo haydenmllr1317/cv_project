@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import os
@@ -95,11 +96,15 @@ class SegmentationDecoder(nn.Module):
 			#Now: (batch, 32, 224, 224)
 
 			nn.Conv2d(32, outDim, kernel_size=1),  #Project to outDim
-			nn.Sigmoid()  # Use sigmoid to get values between 0-1
+			#nn.Sigmoid()  # Use sigmoid to get values between 0-1
 		)
 
-	def forward(self, x):
-		return self.decoder(x)
+	def forward(self, x,logits=False):
+		x=self.decoder(x)
+		if(logits):
+			return x
+		else:
+			return F.softmax(x,dim=1)
 
 class ClIP_Segmentation_Model(nn.Module):
 	def __init__(self,device):
@@ -129,11 +134,11 @@ class ClIP_Segmentation_Model(nn.Module):
 		for param in self.decoderModel.parameters():
 			param.requires_grad = False
 
-	def forward(self, x):
+	def forward(self, x,logits=False):
 		#Get the image features using clip backbone
 		x=extract_CLIP_features(x,self.encoderModel)
 		#Decode features into segmentation mask, using decoder model
-		x=self.decoderModel(x)
+		x=self.decoderModel(x,logits=logits)
 		return x
 
 

@@ -50,7 +50,7 @@ def test():
 
 	globalOptimStep=0
 
-	loss_fn=torch.nn.BCELoss()
+	loss_fn=torch.nn.CrossEntropyLoss()
 
 	for epoch in range(num_epochs):
 
@@ -71,8 +71,9 @@ def test():
 			outputStack=torch.cat(outputStack,0).to(device)
 
 			#forward
-			outputs = model(imageStack)
-			loss = loss_fn(outputs, outputStack)
+			outputs = model(imageStack,logits=True)
+			target_indices = torch.argmax(outputStack, dim=1)
+			loss = loss_fn(outputs, target_indices)
 
 			#backward
 			optimizer.zero_grad()

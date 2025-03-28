@@ -87,7 +87,7 @@ def test():
 
 
 			#forward
-			outputs = clipModel(imageStack)
+			outputs = clipModel(imageStack,logits=True)
 			#print(outputs.size())
 			#input()
 			target_indices = torch.argmax(outputStack, dim=1)

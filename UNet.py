@@ -62,7 +62,7 @@ class UNet(nn.Module):
 		#Output projection layer
 		self.outProj = nn.Conv2d(baseDim, dimOut, kernel_size=1)
 
-	def forward(self, x):
+	def forward(self, x,logits=False):
 		latents = []
 
 		#encode (downscale)
@@ -81,8 +81,11 @@ class UNet(nn.Module):
 
 		#out proj
 		x = self.outProj(x)
-		x=torch.sigmoid(x)
-		return x
+		#x=torch.sigmoid(x)
+		if(logits):
+			return x
+		else:
+			return F.softmax(x,dim=1)
 
 def test():
     model = UNet(dimIn=3, dimOut=1, depth=6)
