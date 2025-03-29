@@ -1,5 +1,5 @@
 from UNet import UNet
-from customDataset import imageLoaderDataset,custom_collate
+from customDataset import imageLoaderDataset
 import torch.optim as optim
 import torch
 from torch.utils.data import DataLoader
@@ -59,7 +59,7 @@ def test():
 	batch_size = 16
 
 	train_dataset = imageLoaderDataset(dataPairs_Train)
-	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,collate_fn=custom_collate,drop_last=True)
+	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
 
 	globalOptimStep=0
 
@@ -69,23 +69,15 @@ def test():
 
 		running_loss = 0
 
-		for batch_idx, batchData in enumerate(train_loader):
+		for batch_idx, (inputImage,imageClean,targetMask) in enumerate(train_loader):
 
-			#Put toghether input image batch
-			imageStack=[]
-			for sampleIdx in range(len(batchData)):
-				imageStack.append(batchData[sampleIdx][1])
-			imageStack=torch.cat(imageStack,0).to(device)
-
-			#Put toghether output mask batch
-			outputStack=[]
-			for sampleIdx in range(len(batchData)):
-				outputStack.append(batchData[sampleIdx][2])
-			outputStack=torch.cat(outputStack,0).to(device)
+			#Move data to device
+			inputImage=inputImage.to(device)
+			targetMask=targetMask.to(device)
 
 			#forward
-			outputs = model(imageStack,logits=True)
-			target_indices = torch.argmax(outputStack, dim=1)
+			outputs = model(inputImage,logits=True)
+			target_indices = torch.argmax(targetMask, dim=1)
 			loss = loss_fn(outputs, target_indices)
 
 			#backward

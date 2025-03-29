@@ -1,5 +1,5 @@
 from CLIP_Segmenter import ClIP_Segmentation_Model
-from customDataset import imageLoaderDataset,custom_collate
+from customDataset import imageLoaderDataset
 import torch.optim as optim
 import torch
 import torch.nn as nn
@@ -70,7 +70,7 @@ def test():
 	batch_size = 16
 
 	train_dataset = imageLoaderDataset(dataPairs_Train,targetRes=input_resolution)
-	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,collate_fn=custom_collate,drop_last=True)
+	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
 
 	globalOptimStep=0
 
@@ -80,30 +80,21 @@ def test():
 
 		running_loss = 0
 
-		for batch_idx, batchData in enumerate(train_loader):
+		for batch_idx, (inputImage,imageClean,targetMask) in enumerate(train_loader):
 
-			#Put toghether input image batch
-			imageStack=[]
-			for sampleIdx in range(len(batchData)):
-				imageStack.append(batchData[sampleIdx][1])
-			imageStack=torch.cat(imageStack,0).to(device)
+			#Move data to device
+			inputImage=inputImage.to(device)
+			targetMask=targetMask.to(device)
+
 			#Bring back into 0-1 range, and apply normalization as required by clip
 			with torch.no_grad():
-				imageStack=(imageStack+1.0)*0.5
-				imageStack=clip_image_norm(imageStack)
-
-			#Put toghether output mask batch
-			outputStack=[]
-			for sampleIdx in range(len(batchData)):
-				outputStack.append(batchData[sampleIdx][2])
-			outputStack=torch.cat(outputStack,0).to(device)
+				inputImage=(inputImage+1.0)*0.5
+				inputImage=clip_image_norm(inputImage)
 
 
 			#forward
-			outputs = clipModel(imageStack,logits=True)
-			#print(outputs.size())
-			#input()
-			target_indices = torch.argmax(outputStack, dim=1)
+			outputs = clipModel(inputImage,logits=True)
+			target_indices = torch.argmax(targetMask, dim=1)
 			loss = loss_fn(outputs, target_indices)
 
 			#backward

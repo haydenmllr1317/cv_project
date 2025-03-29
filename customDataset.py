@@ -164,15 +164,17 @@ class imageLoaderDataset(torch.utils.data.Dataset):
 				loadedMask=HandleMaskConversion(loadedMask)
 
 				#Add random augmentations
-				loadedImage,loadedMask,_=AugmentImage(loadedImage,loadedMask,skipAugments=self.skipAugments)
+				loadedImage,imageClean,loadedMask,_=AugmentImage(loadedImage,loadedMask,skipAugments=self.skipAugments)
 
-			return self.dataPairs[index],loadedImage,loadedMask
+			#return self.dataPairs[index],loadedImage,loadedMask
+			return loadedImage[0],imageClean,loadedMask[0]
 
 		except Exception as ex:
 			print(ex)
 			#print("hi")
 			#input()
-			return self.dataPairs[index],None,None
+			#return self.dataPairs[index],None,None
+			return None,None
 
 
 
@@ -190,11 +192,15 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
 
 	augment_chance=1.0/4
 
+	#Make a clean copy of the image
+	imageClean=inputImage+0
+
 	if(not skipAugments):
 		#X-flip:
 		if(bool(random.getrandbits(1))):
 			embed_xFlip=1
 			inputImage=inputImage.flip(3)
+			imageClean=imageClean.flip(3)
 			if(not(inputMask is None)):
 				inputMask=inputMask.flip(3)
 
@@ -203,6 +209,7 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
 			if(bool(random.getrandbits(1))):
 				embed_yFlip=1
 				inputImage=inputImage.flip(2)
+				imageClean=imageClean.flip(2)
 				if(not(inputMask is None)):
 					inputMask=inputMask.flip(2)
 
@@ -210,6 +217,7 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
 		if(random.uniform(0, 1)<augment_chance):
 			embed_rotAmount=random.uniform(-1,1)
 			inputImage=torchvision.transforms.functional.rotate(inputImage,embed_rotAmount*90)
+			imageClean=torchvision.transforms.functional.rotate(imageClean,embed_rotAmount*90)
 			if(not(inputMask is None)):
 				inputMask=torchvision.transforms.functional.rotate(inputMask,embed_rotAmount*90)
 
@@ -220,6 +228,6 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
 			inputImage=torchvision.transforms.functional.adjust_hue(inputImage,embed_hueShift*0.5)
 			inputImage=(inputImage*2)-1
 
-	return inputImage,inputMask,[embed_xFlip,embed_yFlip,embed_rotAmount,embed_hueShift]
+	return inputImage,imageClean,inputMask,[embed_xFlip,embed_yFlip,embed_rotAmount,embed_hueShift]
 
 
