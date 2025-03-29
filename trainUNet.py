@@ -9,6 +9,10 @@ from pathlib import Path
 
 import random
 
+import evalUtil
+import util
+import json
+
 #TODO:
 #	proper eval loss tracking
 #	lr scheduling?
@@ -58,8 +62,17 @@ def test():
 	num_epochs = 100
 	batch_size = 16
 
+	#Train set dataset/loader
 	train_dataset = imageLoaderDataset(dataPairs_Train)
 	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
+
+	#Dev set dataset/loader
+	dev_dataset = imageLoaderDataset(dataPairs_Dev)
+	dev_loader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+	dev_iter = iter(dev_loader) #Iterator so it can work inside the main train loop
+
+	#Creates a new run log
+	runLog=util.get_run_log_dict()
 
 	globalOptimStep=0
 
@@ -88,9 +101,58 @@ def test():
 			#Log every 10 optimizer steps
 			if(globalOptimStep%10==0):
 				print(f'step {globalOptimStep}: Loss: {loss.item():.4f}   ({(batch_idx*batch_size/len(dataPairs_Train))*100:.2f}% +{epoch})')
+
+				#Calculate dev loss and other metrics
+				with torch.no_grad():
+					#Switch model to eval mode
+					model.eval()
+
+					#Handle data loading
+					try:
+						(inputImage_dev,_,targetMask_dev) = next(dev_iter)
+					except StopIteration:
+						#Reset iterator if reached the end
+						dev_iter = iter(dev_loader)
+						(inputImage_dev,_,targetMask_dev) = next(dev_iter)
+
+					#Move data to device
+					inputImage_dev=inputImage_dev.to(device)
+					targetMask_dev=targetMask_dev.to(device)
+
+					#forward pass
+					outputs_dev = model(inputImage_dev, logits=True)
+					target_indices_dev = torch.argmax(targetMask_dev, dim=1)
+					dev_loss = loss_fn(outputs_dev, target_indices_dev)
+
+					#print(f'Dev Loss: {dev_loss.item():.4f}')
+
+					#Switch model back to train mode
+					model.train()
+
+					#Metrics:
+					IoU_train_set=evalUtil.get_IoU(util.logit_to_onehot(outputs),targetMask)
+					IoU_dev_set=evalUtil.get_IoU(util.logit_to_onehot(outputs_dev),targetMask_dev)
+					#print(f'Train IoU: {IoU_train_set:.4f}')
+					#print(f'Dev IoU: {IoU_dev_set:.4f}')
+
+					#Record run metrics (train):
+					runLog["LossTrain"].append(loss.item())
+					runLog["IoU_Train"].append(IoU_train_set.item())
+					runLog["LossTrain_s"].append(globalOptimStep)
+
+					#Record run metrics (dev):
+					runLog["LossDev"].append(dev_loss.item())
+					runLog["IoU_Dev"].append(IoU_dev_set.item())
+					runLog["LossDev_s"].append(globalOptimStep)
+
 			globalOptimStep+=1
 
 			running_loss += loss.item()
+
+		#Save log file on every epoch
+		os.makedirs("Runs/UNet/",exist_ok=True)
+		with open("Runs/UNet/Run0.json","w") as f:
+			json.dump(runLog,f)
 
 
 		#epoch statistics
