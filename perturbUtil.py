@@ -180,7 +180,7 @@ def salt_pepper(input_image: torch.Tensor, prob: float) -> torch.Tensor:
 	mask = (mask < prob).to(torch.float32)
 
 	#generate noise
-	noise = torch.round(torch.rand_like(input_image))*255
+	noise = torch.round(torch.rand_like(input_image)[:,:1,:,:])*255
 
 	#Add noise to image
 	noisy_image = input_image * (1 - mask) + noise * mask
