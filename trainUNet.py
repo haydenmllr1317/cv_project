@@ -13,6 +13,8 @@ import evalUtil
 import util
 import json
 
+from safetensors.torch import load_model, save_model
+
 #TODO:
 #	proper eval loss tracking
 #	lr scheduling?
@@ -149,10 +151,12 @@ def test():
 
 			running_loss += loss.item()
 
-		#Save log file on every epoch
-		os.makedirs("Runs/UNet/",exist_ok=True)
-		with open("Runs/UNet/Run0.json","w") as f:
+		#Save log file and checkpoint on every epoch
+		os.makedirs("Runs/UNet/Run0",exist_ok=True)
+		with open("Runs/UNet/Run0/runLog.json","w") as f:
 			json.dump(runLog,f)
+		os.makedirs("Runs/UNet/Run0/Checkpoints/",exist_ok=True)
+		save_model(model, f"Runs/UNet/Run0/Checkpoints/gs{globalOptimStep}_e{epoch}.safetensors")
 
 
 		#epoch statistics
