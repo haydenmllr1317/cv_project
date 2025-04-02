@@ -6,7 +6,6 @@ import torch.nn.functional as F
 #	wrote code to work in range 0-255 (its what the instructions want) but rest of project is in 0-1
 #		possibly add helper function to move between the two, or swap over to 0-1
 #	grad-aware round? (probably overkill)
-#	preview the output images to make sure its correct
 
 
 #For a) Gaussian pixel noise
@@ -59,8 +58,6 @@ def gaussian_blur(input_image: torch.Tensor, num_iters: int) -> torch.Tensor:
 		[1.0, 2.0, 1.0]
 	], dtype=input_image.dtype, device=input_image.device) / 16.0
 
-	#TODO:
-	#	think ive done this correct but make sure later
 	#resize kernel for depth-wise conv (groups=3)
 	#	shape: (out_channels, in_channels_per_group, kernel_height, kernel_width)
 	kernel = kernel.view(1, 1, 3, 3)#(1, 1, 3, 3)

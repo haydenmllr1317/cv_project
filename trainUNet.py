@@ -16,12 +16,10 @@ import json
 from safetensors.torch import load_model, save_model
 
 #TODO:
-#	proper eval loss tracking
 #	lr scheduling?
 #	ga?
 #	better logging
 #	console arguments
-#	saving
 #	cleanup
 
 #device
@@ -155,8 +153,10 @@ def test():
 		os.makedirs("Runs/UNet/Run0",exist_ok=True)
 		with open("Runs/UNet/Run0/runLog.json","w") as f:
 			json.dump(runLog,f)
-		os.makedirs("Runs/UNet/Run0/Checkpoints/",exist_ok=True)
-		save_model(model, f"Runs/UNet/Run0/Checkpoints/gs{globalOptimStep}_e{epoch}.safetensors")
+		#Save a checkpoint every 2 epochs
+		if(epoch%2==0):
+			os.makedirs("Runs/UNet/Run0/Checkpoints/",exist_ok=True)
+			save_model(model, f"Runs/UNet/Run0/Checkpoints/gs{globalOptimStep}_e{epoch}.safetensors")
 
 
 		#epoch statistics

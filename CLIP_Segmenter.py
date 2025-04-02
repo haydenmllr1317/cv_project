@@ -11,7 +11,7 @@ import numpy as np
 
 #TODO:
 #	cleanup
-#	posiibly a better decoder model (tho current one also seems fine tbh)
+#	posibly a better decoder model (tho current one also seems fine tbh)
 
 
 
@@ -71,32 +71,31 @@ class SegmentationDecoder(nn.Module):
 		self.decoder = nn.Sequential(
 			#Now: (batch, 512, 14, 14)
 
+			nn.BatchNorm2d(512),
 			nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(256),
 			nn.GELU(),
 
 			#Now: (batch, 256, 28, 28)
 
+			nn.BatchNorm2d(256),
 			nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(128),
 			nn.GELU(),
 
 			#Now: (batch, 128, 56, 56)
 
+			nn.BatchNorm2d(128),
 			nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(64),
 			nn.GELU(),
 
 			#Now: (batch, 64, 112, 112)
 
+			nn.BatchNorm2d(64),
 			nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(32),
 			nn.GELU(),
 
 			#Now: (batch, 32, 224, 224)
 
-			nn.Conv2d(32, outDim, kernel_size=1),  #Project to outDim
-			#nn.Sigmoid()  # Use sigmoid to get values between 0-1
+			nn.Conv2d(32, outDim, kernel_size=1), #Project to outDim
 		)
 
 	def forward(self, x,logits=False):
