@@ -1,4 +1,4 @@
-from UNet import UNet
+from models.UNet import UNet
 from customDataset import imageLoaderDataset
 import torch.optim as optim
 import torch
@@ -16,7 +16,6 @@ import json
 from safetensors.torch import load_model, save_model
 
 #TODO:
-#	lr scheduling?
 #	ga?
 #	better logging
 #	console arguments
@@ -61,6 +60,9 @@ def test():
 
 	num_epochs = 100
 	batch_size = 16
+	maxSteps=10000
+	lr_max=1e-3
+	lr_min=lr_max*0.1	#1 order of magnitude drop
 
 	#Train set dataset/loader
 	train_dataset = imageLoaderDataset(dataPairs_Train)
@@ -146,6 +148,17 @@ def test():
 					runLog["LossDev_s"].append(globalOptimStep)
 
 			globalOptimStep+=1
+
+			#Update learning rate
+			if(globalOptimStep>maxSteps):
+				newLr=lr_min
+			else:
+				#Starts at 1, ends at 0
+				lr_delta=(1-(globalOptimStep/maxSteps))
+				#Starts at lr_max, ends at lr_min
+				newLr=(lr_max*lr_delta)+(lr_min*(1.0-lr_delta))
+			for g in optimizer.param_groups:
+				g['lr'] = newLr
 
 			running_loss += loss.item()
 

@@ -1,0 +1,49 @@
+
+The code for each model implementation can be found in:
+    Unet:
+      ./models/UNet.py
+    CLIP-based:
+      ./models/CLIP_Segmenter.py
+
+The training scripts are configured to match our final training runs
+To replicate them run:
+    ./trainUNet.py
+    ./trainCLIP.py
+
+
+The code for the perturbations is in:
+    ./perturbUtil.py
+And for testing the model in:
+    ./perturbEval.py
+
+The script for measuring a models performance across splits is:
+    ./evaluateModel.py
+The code for the metrics requested is in:
+    ./evalUtil.py
+
+Lastly:
+    ./customDataset.py
+        The code for data loading and data augmentations.
+    ./graphUtil.py
+        A script used to make the graphs in the report and during training.
+    ./util.py
+        Small collection of usefull functions/things we needed.
+
+
+
+
+
+
+If you need to run the code:
+1) Make sure to extract the "TrainVal" and "Test" folders from the dataset into:
+    ./Dataset
+2) Make and activate a virtual enviroment:
+    python -m venv .venv
+    source .venv/bin/activate
+3) Install dependencies:
+    pip install -r requirements.txt
+
+We used python 3.12.3, though 3.10-3.11 likely also work.
+Training requires at least 5gb vram (maybe bit less),
+    and should take less than an hour for each model on a decent system.
+Outputs will be saved in a ./Runs folder.

@@ -1,4 +1,4 @@
-from CLIP_Segmenter import ClIP_Segmentation_Model
+from models.CLIP_Segmenter import ClIP_Segmentation_Model
 from customDataset import imageLoaderDataset
 import torch.optim as optim
 import torch
@@ -21,12 +21,8 @@ import json
 from safetensors.torch import load_model, save_model
 
 #TODO:
-#	proper eval loss tracking
-#	lr scheduling?
 #	ga?
-#	better logging
 #	console arguments
-#	saving
 #	cleanup
 
 #device
@@ -72,8 +68,11 @@ def test():
 		dataPairs_Dev[i]=(dataPairs_Dev[i],f"Dataset/TrainVal/label/{labelImageName}")
 
 
-	num_epochs = 100
+	num_epochs = 20
 	batch_size = 16
+	maxSteps=3340
+	lr_max=1e-3
+	lr_min=lr_max*0.1	#1 order of magnitude drop
 
 	#Train set dataset/loader
 	train_dataset = imageLoaderDataset(dataPairs_Train,targetRes=input_resolution)
@@ -171,14 +170,27 @@ def test():
 
 			globalOptimStep+=1
 
+			#Update learning rate
+			if(globalOptimStep>maxSteps):
+				newLr=lr_min
+			else:
+				#Starts at 1, ends at 0
+				lr_delta=(1-(globalOptimStep/maxSteps))
+				#Starts at lr_max, ends at lr_min
+				newLr=(lr_max*lr_delta)+(lr_min*(1.0-lr_delta))
+			for g in optimizer.param_groups:
+				g['lr'] = newLr
+
 			running_loss += loss.item()
 
 		#Save log file and checkpoint on every epoch
 		os.makedirs("Runs/Clip/Run0",exist_ok=True)
 		with open("Runs/Clip/Run0/runLog.json","w") as f:
 			json.dump(runLog,f)
-		os.makedirs("Runs/Clip/Run0/Checkpoints/",exist_ok=True)
-		save_model(clipModel, f"Runs/Clip/Run0/Checkpoints/gs{globalOptimStep}_e{epoch}.safetensors")
+		#Save a checkpoint every 2 epochs
+		if(epoch%2==0):
+			os.makedirs("Runs/Clip/Run0/Checkpoints/",exist_ok=True)
+			save_model(clipModel, f"Runs/Clip/Run0/Checkpoints/gs{globalOptimStep}_e{epoch}.safetensors")
 
 
 		#epoch statistics

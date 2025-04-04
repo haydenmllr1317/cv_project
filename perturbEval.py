@@ -1,5 +1,5 @@
-from UNet import UNet
-from CLIP_Segmenter import ClIP_Segmentation_Model
+from models.UNet import UNet
+from models.CLIP_Segmenter import ClIP_Segmentation_Model
 from customDataset import imageLoaderDataset
 import torch
 import torch.nn as nn
@@ -197,8 +197,9 @@ def test_model(modelType,modelPath):
 			plotTitle="Model Robustness Against Salt & Pepper Noise"
 			xlabel="Percentage of noisy pixels"
 
-		plt.plot(perturbParamSweeps[perturb_index], hyperParam_results, marker='o', linestyle='-', label=f"{modelType} Model Accuracy")
-		plt.xlabel(xlabel, fontsize=12)
+		plt.rcParams.update({'font.size': 16})
+		plt.plot(perturbParamSweeps[perturb_index], hyperParam_results, marker='o', linestyle='-', label=f"{modelType} Model Dice Score")
+		plt.xlabel(xlabel, fontsize=14)
 
 		#Switch x axis to descending order for contrast decrease.
 		if(perturbNames[perturb_index]=="Image_Contrast_Decrease"):
@@ -206,12 +207,13 @@ def test_model(modelType,modelPath):
 		#Switch x axis to percentages for Salt_and_Pepper_Noise.
 		if(perturbNames[perturb_index]=="Salt_and_Pepper_Noise"):
 			plt.gca().xaxis.set_major_formatter(PercentFormatter(1.0))
-		plt.ylabel('Dice score', fontsize=12)
-		plt.title(plotTitle, fontsize=14)
+		plt.ylabel('Dice score', fontsize=14)
+		plt.title(plotTitle, fontsize=16)
 		plt.legend()
 		plt.grid(True, alpha=0.3)
 		plt.tight_layout()
-		plt.savefig(f'perturbEval/{modelType}/{perturbNames[perturb_index]}.png')
+		os.makedirs(f"perturbEval/{modelType}/Run0",exist_ok=True)
+		plt.savefig(f'perturbEval/{modelType}/{perturbNames[perturb_index]}.png',bbox_inches='tight', pad_inches = 0.05)
 
 
 
@@ -219,5 +221,5 @@ with torch.no_grad():
 	#For UNet
 	#test_model(modelType="UNet",modelPath="Runs/Clip/Run0/Checkpoints/gs3743_e18.safetensors")
 	#For clip
-	test_model(modelType="CLIP",modelPath="Runs/Clip/Run0/Checkpoints/gs3743_e18.safetensors")
+	test_model(modelType="CLIP",modelPath="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors")
 

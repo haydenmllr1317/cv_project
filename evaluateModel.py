@@ -1,5 +1,5 @@
-from UNet import UNet
-from CLIP_Segmenter import ClIP_Segmentation_Model
+from models.UNet import UNet
+from models.CLIP_Segmenter import ClIP_Segmentation_Model
 from customDataset import imageLoaderDataset
 import torch
 import torch.nn as nn
@@ -162,7 +162,11 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 
 with torch.no_grad():
 	#For UNet
-	#evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Test")
+	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Train")
+	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Validation")
+	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Test")
 	#For clip
-	evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3743_e18.safetensors",target_split="Test")
+	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Train")
+	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Validation")
+	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Test")
 
