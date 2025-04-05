@@ -241,7 +241,7 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
 			inputImage=torchvision.transforms.functional.rotate(inputImage,embed_rotAmount*90)
 			imageClean=torchvision.transforms.functional.rotate(imageClean,embed_rotAmount*90)
 			if(not(inputMask is None)):
-				inputMask=torchvision.transforms.functional.rotate(inputMask,embed_rotAmount*90)
+				inputMask=torchvision.transforms.functional.rotate(inputMask,embed_rotAmount*90,fill=[1,0,0])
 
 		#Hue shift:
 		if(random.uniform(0, 1)<augment_chance):
@@ -264,10 +264,10 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
 			embed_freqDomainNoise=random.uniform(0,0.1)
 
 			#Add Gaussian noise to real/imaginary part
-			noise_real = torch.randn_like(fft_tensor.real) * embed_freqDomainNoise
-			noise_imag = torch.randn_like(fft_tensor.imag) * embed_freqDomainNoise
+			noise_real = 1+(torch.randn_like(fft_tensor.real) * embed_freqDomainNoise)
+			noise_imag = 1+(torch.randn_like(fft_tensor.imag) * embed_freqDomainNoise)
 			noise = torch.complex(noise_real, noise_imag)
-			fft_tensor = fft_tensor + noise
+			fft_tensor = fft_tensor * noise
 
 			#Convert back to spatial domain (and clip within range
 			inputImage = torch.fft.ifft2(fft_tensor).real

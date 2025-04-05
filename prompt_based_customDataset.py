@@ -154,9 +154,11 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
   embed_yFlip=0
   embed_rotAmount=0
   embed_hueShift=0
+  embed_rangeCompress=0
+  embed_freqDomainNoise=0
 
 
-  augment_chance=1.0/4
+  augment_chance=1.0/6
 
   #Make a clean copy of the image
   imageClean=inputImage+0
@@ -185,7 +187,7 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
       inputImage=tv_t.functional.rotate(inputImage,embed_rotAmount*90)
       imageClean=tv_t.functional.rotate(imageClean,embed_rotAmount*90)
       if(not(inputMask is None)):
-        inputMask=tv_t.functional.rotate(inputMask,embed_rotAmount*90)
+        inputMask=tv_t.functional.rotate(inputMask,embed_rotAmount*90,fill=[1,0,0])
 
     #Hue shift:
     if(random.uniform(0, 1)<augment_chance):
@@ -194,7 +196,30 @@ def AugmentImage(inputImage,inputMask=None,skipAugments=False):
       inputImage=tv_t.functional.adjust_hue(inputImage,embed_hueShift*0.5)
       inputImage=(inputImage*2)-1
 
-  return inputImage,imageClean,inputMask,[embed_xFlip,embed_yFlip,embed_rotAmount,embed_hueShift]
+    #Range compression:
+    if(random.uniform(0, 1)<augment_chance):
+      embed_rangeCompress=random.uniform(-1,1)
+      inputImage=inputImage*(1.0-abs(embed_rangeCompress))
+      inputImage=inputImage+embed_rangeCompress
+
+    #Frequency Domain Noise:
+    if(random.uniform(0, 1)<augment_chance):
+        #Convert to frequency domain
+        fft_tensor = torch.fft.fft2(inputImage)
+
+        embed_freqDomainNoise=random.uniform(0,0.1)
+
+        #Add Gaussian noise to real/imaginary part
+        noise_real = 1+(torch.randn_like(fft_tensor.real) * embed_freqDomainNoise)
+        noise_imag = 1+(torch.randn_like(fft_tensor.imag) * embed_freqDomainNoise)
+        noise = torch.complex(noise_real, noise_imag)
+        fft_tensor = fft_tensor * noise
+
+        #Convert back to spatial domain (and clip within range
+        inputImage = torch.fft.ifft2(fft_tensor).real
+        inputImage = torch.clamp(inputImage, -1.0, 1.0)
+
+  return inputImage,imageClean,inputMask,[embed_xFlip,embed_yFlip,embed_rotAmount,embed_hueShift,embed_rangeCompress,embed_freqDomainNoise]
 
 
 class imageLoaderDataset(torch.utils.data.Dataset):
