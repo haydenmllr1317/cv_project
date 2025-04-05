@@ -109,6 +109,8 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 
 
 	dice_score_sum=0
+	iou_sum=0
+	pix_acc_sum=0
 	num_of_samples=0
 
 	dice_score_sum_cat=0
@@ -135,10 +137,14 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 		target_indices_dev = torch.argmax(targetMask, dim=1)
 
 		#Metrics:
-		IoU_dev_set=evalUtil.get_dice_coef(util.logit_to_onehot(outputs_dev),targetMask)
+		dice_score=evalUtil.get_dice_coef(util.logit_to_onehot(outputs_dev),targetMask)
+		iou=evalUtil.get_IoU(util.logit_to_onehot(outputs_dev),targetMask)
+		pix_acc=evalUtil.get_pixel_acc(util.logit_to_onehot(outputs_dev),targetMask)
 
 
-		dice_score_sum+=IoU_dev_set.item()*inputImage.size(0)
+		dice_score_sum+=dice_score.item()*inputImage.size(0)
+		iou_sum+=iou.item()*inputImage.size(0)
+		pix_acc_sum+=pix_acc.item()*inputImage.size(0)
 		num_of_samples+=inputImage.size(0)
 
 		#Per class metrics:
@@ -152,21 +158,23 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 				dice_score_sum_dog+=evalUtil.get_dice_coef(util.logit_to_onehot(outputs_dev[i:i+1]),targetMask[i:i+1])
 				num_of_samples_dog+=1
 
-
-	print(f"Total dice score {dice_score_sum/num_of_samples}")
-	print(f"cat dice score {dice_score_sum_cat/num_of_samples_cat}")
-	print(f"dog dice score {dice_score_sum_dog/num_of_samples_dog}")
+	print(f"On {target_split} Set:")
+	print(f"\tIoU: {iou_sum/num_of_samples}")
+	print(f"\tPixel Accuracy: {pix_acc_sum/num_of_samples}")
+	print(f"\tTotal dice score: {dice_score_sum/num_of_samples}")
+	print(f"\tcat dice score: {dice_score_sum_cat/num_of_samples_cat}")
+	print(f"\tdog dice score: {dice_score_sum_dog/num_of_samples_dog}")
 
 
 
 
 with torch.no_grad():
 	#For UNet
-	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Train")
-	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Validation")
+	#evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Train")
+	#evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Validation")
 	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Test")
 	#For clip
 	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Train")
 	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Validation")
-	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Test")
+	evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Test")
 
