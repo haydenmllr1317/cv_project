@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 import os
 from pathlib import Path
@@ -10,17 +9,23 @@ import clip
 import numpy as np
 
 #TODO:
-#	cleanup
 #	posibly a better decoder model (tho current one also seems fine tbh)
 
 
 
-#Extracts the image tokens from a clip model, rather than just the class token.
-#(bit hacky but couldn't find a cleaner method in the CLIP repo)
-#Should match the code in:
-#	https://github.com/openai/CLIP/blob/main/clip/model.py
-#		clip/model.py -> VisionTransformer -> forward
 def extract_CLIP_features(image_batch,model):
+	"""
+	Extracts the image tokens from a clip model, rather than just the class token.
+	(bit hacky but couldn't find a cleaner method in the CLIP repo)
+	Should match the code in:
+		https://github.com/openai/CLIP/blob/main/clip/model.py
+			clip/model.py -> VisionTransformer -> forward
+
+	Args:
+		image_batch (Tensor): A tensor of images, size=[batch,3,height,width]
+		model (torch.nn.Module): Reference to the clip model
+	"""
+
 	#The model seems to be loaded as f16.
 	#Keep note of the input dtype, and temporarely cast it to fp16 for the clip pass.
 	dtype_original=image_batch.dtype
@@ -60,11 +65,19 @@ def extract_CLIP_features(image_batch,model):
 	output=output.to(dtype_original)
 	return output
 
-#Model to decode clip image features of size:
-#	[batch, 512, 14, 14]
-#into segmentation masks of:
-#	[batch, outDim, 224, 224]
+
+
 class SegmentationDecoder(nn.Module):
+	"""
+	Model to decode clip image features of size:
+		[batch, 512, 14, 14]
+	into segmentation masks of:
+		[batch, outDim, 224, 224]
+
+	Args:
+		outDim (int): Number of output mask channels
+	"""
+
 	def __init__(self,outDim=3):
 		super().__init__()
 
@@ -105,7 +118,13 @@ class SegmentationDecoder(nn.Module):
 		else:
 			return F.softmax(x,dim=1)
 
+
+
 class ClIP_Segmentation_Model(nn.Module):
+	"""
+	The full CLIP Segmentation model, using the frozen backbone + trained decoder
+	"""
+
 	def __init__(self,device):
 		super().__init__()
 

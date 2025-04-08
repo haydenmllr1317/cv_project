@@ -6,8 +6,16 @@ import torch.nn.functional as F
 #	perhaps something different at top layer.
 #		(though attention is probably too much for this project)
 
-#Double Convolution block like in the original paper
+
 class DoubleConv(nn.Module):
+	"""
+	Double Convolution block like in the original paper
+
+	Args:
+		inDim (int): Number of input channels
+		outDim (int): Number of output channels
+	"""
+
 	def __init__(self, inDim, outDim):
 		super().__init__()
 		self.double_conv = nn.Sequential(
@@ -23,6 +31,13 @@ class DoubleConv(nn.Module):
 		return self.double_conv(x)
 
 class UpBlock(nn.Module):
+	"""
+	Upscaling (decoding) block
+
+	Args:
+		inDim (int): Number of input channels
+		outDim (int): Number of output channels
+	"""
 	def __init__(self, inDim, outDim):
 		super().__init__()
 		#Could also try pixel un-shuffle
@@ -35,6 +50,15 @@ class UpBlock(nn.Module):
 		return self.conv(x)
 
 class UNet(nn.Module):
+	"""
+	Double Convolution block like in the original paper
+
+	Args:
+		inDim (int): Number of input channels
+		dimOut (int): Number of output channels
+		depth (int): Number of downscale/upscale layers
+		baseDim (int): "Base" number of dimensions.
+	"""
 	def __init__(self, dimIn=3, dimOut=3, depth=4, baseDim=64):
 		super(UNet, self).__init__()
 		self.depth = depth
@@ -72,7 +96,7 @@ class UNet(nn.Module):
 			latents.append(x)
 			x = F.max_pool2d(x, 2)
 
-
+		#Pass through top-level layer
 		x = self.topLayer(x)
 
 		#decode (upscale)
@@ -86,6 +110,8 @@ class UNet(nn.Module):
 			return x
 		else:
 			return F.softmax(x,dim=1)
+
+#For quick testing
 """
 def test():
     model = UNet(dimIn=3, dimOut=1, depth=6)

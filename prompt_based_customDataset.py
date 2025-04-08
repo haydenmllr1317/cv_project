@@ -8,7 +8,8 @@ import numpy as np
 import torchvision.transforms as tv_t
 import random
 import math
-from customDataset import loadIm,resizeImage,AugmentImage
+from customDataset import loadIm,resizeImage
+import torchvision
 
 ################################################################################
 # THIS IS A VERSION OF OUR DATASET CREATION CODE THAT IS MODIFIED TO SUPPORT   #
@@ -133,8 +134,103 @@ class imageLoaderDataset(torch.utils.data.Dataset):
         #      elements, now returns an additional element, point_map
         #      which is a 3-channel image-sized tensor of all zeros except
         #      at the prompt point where the value is 1 (for all channels)
-        return loadedImage[0],imageClean,loadedMask[0], point_map
+        return loadedImage[0],imageClean[0],loadedMask[0], point_map
 
     except Exception as ex:
       print(ex)
       return None,None
+
+# NOTE: Same as original with a fix to handle the 4-channel mask
+def AugmentImage(inputImage,inputMask=None,skipAugments=False):
+	"""
+	Augments a given image and optionaly applies the appropriate matching edits to its mask.
+
+	Args:
+		inputImage (Tensor): an image tensor, size=(1,3,height,width) in the range -1 to 1
+		inputMask (Tensor): an optional segmentation mask, same size as the image to apply matching transforms to
+		skipAugments (bool): whether or not to skip augmentations
+
+	Returns:
+		(Tensor): Augmented Image
+		(Tensor): Partialy Augmented image as described in report
+		(Tensor): Segmentation mask with matching augmentations applied
+		(list): A list of floats representing an embeding of the augmentations applied
+	"""
+	embed_xFlip=0
+	embed_yFlip=0
+	embed_rotAmount=0
+	embed_hueShift=0
+	embed_rangeCompress=0
+	embed_freqDomainNoise=0
+
+	augment_chance=1.0/6
+
+	#Make a clean copy of the image
+	imageClean=inputImage+0
+
+	if(not skipAugments):
+		#X-flip:
+		if(bool(random.getrandbits(1))):
+			embed_xFlip=1
+			inputImage=inputImage.flip(3)
+			imageClean=imageClean.flip(3)
+			if(not(inputMask is None)):
+				inputMask=inputMask.flip(3)
+
+		#Y-flip:
+		if(random.uniform(0, 1)<augment_chance):
+			if(bool(random.getrandbits(1))):
+				embed_yFlip=1
+				inputImage=inputImage.flip(2)
+				imageClean=imageClean.flip(2)
+				if(not(inputMask is None)):
+					inputMask=inputMask.flip(2)
+
+		#Rotate:
+		if(random.uniform(0, 1)<augment_chance):
+			embed_rotAmount=random.uniform(-1,1)
+			inputImage=torchvision.transforms.functional.rotate(inputImage,embed_rotAmount*90)
+			imageClean=torchvision.transforms.functional.rotate(imageClean,embed_rotAmount*90)
+			if(not(inputMask is None)):
+				inputMask=torchvision.transforms.functional.rotate(inputMask,embed_rotAmount*90,fill=[1,0,0,0])
+
+		#Hue shift:
+		if(random.uniform(0, 1)<augment_chance):
+			embed_hueShift=random.uniform(-1,1)
+			inputImage=(inputImage+1)*0.5
+			inputImage=torchvision.transforms.functional.adjust_hue(inputImage,embed_hueShift*0.5)
+			inputImage=(inputImage*2)-1
+
+		#Range compression:
+		if(random.uniform(0, 1)<augment_chance):
+			embed_rangeCompress=random.uniform(-1,1)
+			inputImage=inputImage*(1.0-abs(embed_rangeCompress))
+			inputImage=inputImage+embed_rangeCompress
+
+		#Frequency Domain Noise:
+		if(random.uniform(0, 1)<augment_chance):
+			#Convert to frequency domain
+			fft_tensor = torch.fft.fft2(inputImage)
+
+			embed_freqDomainNoise=random.uniform(0,0.1)
+
+			#Add Gaussian noise to real/imaginary part
+			noise_real = 1+(torch.randn_like(fft_tensor.real) * embed_freqDomainNoise)
+			noise_imag = 1+(torch.randn_like(fft_tensor.imag) * embed_freqDomainNoise)
+			noise = torch.complex(noise_real, noise_imag)
+			fft_tensor = fft_tensor * noise
+
+			#Convert back to spatial domain (and clip within range
+			inputImage = torch.fft.ifft2(fft_tensor).real
+			inputImage = torch.clamp(inputImage, -1.0, 1.0)
+
+	return_embed=[
+		embed_xFlip,
+		embed_yFlip,
+		embed_rotAmount,
+		embed_hueShift,
+		embed_rangeCompress,
+		embed_freqDomainNoise
+		]
+
+	return inputImage,imageClean,inputMask,return_embed

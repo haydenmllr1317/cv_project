@@ -1,30 +1,34 @@
+#DataLoader/Models
 from models.UNet import UNet
 from models.CLIP_Segmenter import ClIP_Segmentation_Model
 from customDataset import imageLoaderDataset
+import clip
+
+#Torch/numpy
 import torch
 import torch.nn as nn
 import torchvision.transforms as tv_t
 from torch.utils.data import DataLoader
-
-import os
-from pathlib import Path
-
-import clip
 import numpy as np
 
-import random
+#File handling
+import os
+from pathlib import Path
+from safetensors.torch import load_model, save_model
 
+#Utils
+import random
 import evalUtil
 import util
 import json
-
-from safetensors.torch import load_model, save_model
-
+import argparse
 import perturbUtil
+
+#Plots
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
-import argparse
 
+#Set the device, gpu if available, cpu otherwise
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -39,7 +43,7 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 		target_split (string): Dataset split to test on. One of either: ["Train","Validation","Test"]
 
 	"""
-
+	#Ensure valid args
 	assert model_type in ["CLIP","UNet"]
 	assert target_split in ["Train","Validation","Test"]
 
@@ -69,6 +73,7 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 	dataPairs_Dev=dataPairs_Train[:len(dataPairs_Train)//7]
 	dataPairs_Train=dataPairs_Train[len(dataPairs_Train)//7:]
 
+	#Load appropriate data split
 	if(target_split=="Train"):
 		#Put toghether train-set data:
 		for i in range(len(dataPairs_Train)):
@@ -92,19 +97,17 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 			dataPairs_Test[i]=(dataPairs_Test[i],f"Dataset/Test/label/{labelImageName}")
 		target_set=dataPairs_Test
 
-	#Test set dataset/loader
+	#Split-to-be-tested dataset/loader
 	test_dataset = imageLoaderDataset(target_set,targetRes=input_resolution,skipAugments=True)
 	test_loader = DataLoader(test_dataset, batch_size=16)
 
-
+	#Required accumilators etc for various metrics
 	dice_score_sum=0
 	iou_sum=0
 	pix_acc_sum=0
 	num_of_samples=0
-
 	dice_score_sum_cat=0
 	num_of_samples_cat=0
-
 	dice_score_sum_dog=0
 	num_of_samples_dog=0
 
@@ -113,7 +116,6 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 		#Move data to device
 		inputImage=inputImage.to(device)
 		targetMask=targetMask.to(device)
-
 
 
 		#If using clip, bring into 0-1 range, and apply normalization
@@ -125,12 +127,12 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 		outputs_dev = model(inputImage, logits=True)
 		target_indices_dev = torch.argmax(targetMask, dim=1)
 
-		#Metrics:
+		#Calculate batch metrics:
 		dice_score=evalUtil.get_dice_coef(util.logit_to_onehot(outputs_dev),targetMask)
 		iou=evalUtil.get_IoU(util.logit_to_onehot(outputs_dev),targetMask)
 		pix_acc=evalUtil.get_pixel_acc(util.logit_to_onehot(outputs_dev),targetMask)
 
-
+		#Update overall metrics
 		dice_score_sum+=dice_score.item()*inputImage.size(0)
 		iou_sum+=iou.item()*inputImage.size(0)
 		pix_acc_sum+=pix_acc.item()*inputImage.size(0)
@@ -147,6 +149,7 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 				dice_score_sum_dog+=evalUtil.get_dice_coef(util.logit_to_onehot(outputs_dev[i:i+1]),targetMask[i:i+1])
 				num_of_samples_dog+=1
 
+	#Print Metrics
 	print(f"On {target_split} Set:")
 	print(f"\tIoU: {iou_sum/num_of_samples}")
 	print(f"\tPixel Accuracy: {pix_acc_sum/num_of_samples}")
@@ -156,17 +159,6 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 
 
 
-"""
-with torch.no_grad():
-	#For UNet
-	#evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Train")
-	#evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Validation")
-	evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Test")
-	#For clip
-	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Train")
-	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Validation")
-	evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Test")
-"""
 def main():
 	#Create parser
 	parser = argparse.ArgumentParser(description="Evaluate a machine learning model.")
@@ -175,16 +167,16 @@ def main():
 	parser.add_argument('--model_type', type=str, default='UNet',
 						choices=['CLIP', 'UNet'],
 						help='Model type (default: UNet)')
-    parser.add_argument('--model_path', type=str, default="",
+	parser.add_argument('--model_path', type=str, default="",
 						help='Path to model checkpoint (default: None)')
 	parser.add_argument('--target_split', type=str, default='Test',
 						choices=['Train', 'Validation', 'Test'],
 						help='Dataset split to evaluate (default: Test)')
 
-    args = parser.parse_args()
+	args = parser.parse_args()
 
-    #Run model evaluation
-    with torch.no_grad():
+	#Run model evaluation
+	with torch.no_grad():
 		evaluate_model(args.model_type, args.model_path, args.target_split)
 
 if __name__ == "__main__":

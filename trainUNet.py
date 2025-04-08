@@ -1,19 +1,22 @@
+#Data loaging/models
 from models.UNet import UNet
 from customDataset import imageLoaderDataset
+
+#Numpy/torch
 import torch.optim as optim
 import torch
 from torch.utils.data import DataLoader
 
+#File handling
 import os
 from pathlib import Path
+from safetensors.torch import load_model, save_model
 
+#Utils etc
 import random
-
 import evalUtil
 import util
 import json
-
-from safetensors.torch import load_model, save_model
 import argparse
 
 

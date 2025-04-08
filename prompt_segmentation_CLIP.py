@@ -8,8 +8,8 @@ import cv2
 import os
 from pathlib import Path
 import clip
-import customDataset
-import cus
+from prompt_based_customDataset import imageLoaderDataset
+import util
 import numpy as np
 import torch.optim as optim
 import torchvision.transforms as tv_t
@@ -124,10 +124,7 @@ def output_to_photo(tens):
   return color_it[tens]
 
 # paths to our input training and validation data
-train_path = ''
-val_path = ''
-training_label_path = ''
-val_label_path = ''
+train_path = 'Dataset/TrainVal/'
 
 optimizer = optim.Adam(clipModel.decoderModel.parameters(), lr=0.001)
 
@@ -136,33 +133,32 @@ input_resolution = int(clipModel.encoderModel.visual.input_resolution)
 
 clip_image_norm=tv_t.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
 
-# here we create our dataset objects
-# first, we just have our input images, we add the masks in the for loops to follow
-dataPairs_Train=customDataset.get_files_in_folder(train_path)
+
+
+#Create train/dev splits with a 6:1 ratio
+dataPairs_Train=util.get_files_in_folder("Dataset/TrainVal/color")
 dataPairs_Train.sort()
 random.seed(0)
 random.shuffle(dataPairs_Train)
-dataPairs_Val = customDataset.get_files_in_folder(val_path)
-dataPairs_Val.sort()
-random.seed(0)
-random.shuffle(dataPairs_Val)
+dataPairs_Val=dataPairs_Train[:len(dataPairs_Train)//7]
+dataPairs_Train=dataPairs_Train[len(dataPairs_Train)//7:]
 
-#create input-output pairs
+#put toghether data:
 for i in range(len(dataPairs_Train)):
-  #Labels seem to always be pngs
-  labelImageName=Path(dataPairs_Train[i]).stem+".png"
-  dataPairs_Train[i]=(dataPairs_Train[i],os.path.join(training_label_path, labelImageName))
+    #Labels seem to always be pngs
+    labelImageName=Path(dataPairs_Train[i]).stem+".png"
+    dataPairs_Train[i]=(dataPairs_Train[i],f"Dataset/TrainVal/label/{labelImageName}")
 for i in range(len(dataPairs_Val)):
-  #Labels seem to always be pngs
-  labelImageName=Path(dataPairs_Val[i]).stem+".png"
-  dataPairs_Val[i]=(dataPairs_Val[i],os.path.join(val_label_path, labelImageName))
+    #Labels seem to always be pngs
+    labelImageName=Path(dataPairs_Val[i]).stem+".png"
+    dataPairs_Val[i]=(dataPairs_Val[i],f"Dataset/TrainVal/label/{labelImageName}")
 
 #Train set dataset/loader
-train_dataset = customDataset.imageLoaderDataset(dataPairs_Train)
+train_dataset = imageLoaderDataset(dataPairs_Train,targetRes=input_resolution)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
 
 #Dev set dataset/loader
-val_dataset = customDataset.imageLoaderDataset(dataPairs_Val)
+val_dataset = imageLoaderDataset(dataPairs_Val,targetRes=input_resolution)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 val_iter = iter(val_loader)
 

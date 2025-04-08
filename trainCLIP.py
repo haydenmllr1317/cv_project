@@ -1,24 +1,25 @@
+#Data loaging/models
 from models.CLIP_Segmenter import ClIP_Segmentation_Model
 from customDataset import imageLoaderDataset
+
+#Numpy/torch
+import numpy as np
 import torch.optim as optim
 import torch
 import torch.nn as nn
 import torchvision.transforms as tv_t
 from torch.utils.data import DataLoader
 
+#File handling
 import os
 from pathlib import Path
+from safetensors.torch import load_model, save_model
 
-import clip
-import numpy as np
-
+#Utils etc
 import random
-
 import evalUtil
 import util
 import json
-
-from safetensors.torch import load_model, save_model
 import argparse
 
 

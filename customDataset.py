@@ -196,7 +196,7 @@ class imageLoaderDataset(torch.utils.data.Dataset):
 				loadedImage,imageClean,loadedMask,_=AugmentImage(loadedImage,loadedMask,skipAugments=self.skipAugments)
 
 			#return self.dataPairs[index],loadedImage,loadedMask
-			return loadedImage[0],imageClean,loadedMask[0]
+			return loadedImage[0],imageClean[0],loadedMask[0]
 
 		except Exception as ex:
 			print(ex)
