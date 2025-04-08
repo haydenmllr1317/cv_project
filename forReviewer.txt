@@ -1,23 +1,36 @@
 
-The code for each model implementation can be found in:
-    Unet:
-      ./models/UNet.py
-    CLIP-based:
-      ./models/CLIP_Segmenter.py
+Unet & CLIP:
+    Model code:
+        ./models/UNet.py
+        ./models/CLIP_Segmenter.py
 
-The training scripts are configured to match our final training runs
-To replicate them run:
-    ./trainUNet.py
-    ./trainCLIP.py
+    Training Scripts (with same defaults as report):
+        ./trainUNet.py
+        ./trainCLIP.py
+
+    Eval script:
+        evaluateModel.py
+
+Auto-Encoder:
+    ./models/AutoEnc.py
+    self_supervised_autoencoder.py
+    pet_classification_decoder.py
+    binary_pet_segmentation_decoder.py
+
+Prompt-Based Clip Segmentation:
+    ./prompt_segmentation_CLIP.py
+    ./test_prompt_segmentation_CLIP.py
+    ./prompt_based_customDataset.py
+
+-------------------------------------------------------------------
 
 
 The code for the perturbations is in:
     ./perturbUtil.py
-And for testing the model in:
+
+The code for evaluating perturbation resilience:
     ./perturbEval.py
 
-The script for measuring a models performance across splits is:
-    ./evaluateModel.py
 The code for the metrics requested is in:
     ./evalUtil.py
 
@@ -29,8 +42,7 @@ Lastly:
     ./util.py
         Small collection of usefull functions/things we needed.
 
-
-
+-------------------------------------------------------------------
 
 
 

@@ -37,35 +37,35 @@ eps=1e-5
 # the fact that we now have four classes:
 # [backgroundClicked, catClicked, dogClicked, notClicked]
 class SegmentationDecoder(nn.Module):
-	def __init__(self,outDim=4):
-		super().__init__()
+    def __init__(self,outDim=4):
+        super().__init__()
 
-		self.decoder = nn.Sequential(
-			nn.ConvTranspose2d(1024, 512, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(512),
-			nn.GELU(),
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(1024, 512, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(512),
+            nn.GELU(),
 
-			nn.ConvTranspose2d(512, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(128),
-			nn.GELU(),
+            nn.ConvTranspose2d(512, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.GELU(),
 
-			nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(64),
-			nn.GELU(),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(64),
+            nn.GELU(),
 
-			nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.BatchNorm2d(32),
-			nn.GELU(),
+            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(32),
+            nn.GELU(),
 
-			nn.Conv2d(32, outDim, kernel_size=1)
-		)
+            nn.Conv2d(32, outDim, kernel_size=1)
+        )
 
-	def forward(self, x,logits=False):
-		x=self.decoder(x)
-		if(logits):
-			return x
-		else:
-			return F.softmax(x,dim=1)
+    def forward(self, x,logits=False):
+        x=self.decoder(x)
+        if(logits):
+            return x
+        else:
+            return F.softmax(x,dim=1)
 
 # this class is also identical to that in CLIP_Segmenter.py except for the
 # forward method, in which we now additionally consume a point map (detailed in 
