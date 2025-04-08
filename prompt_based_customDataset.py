@@ -8,6 +8,7 @@ import numpy as np
 import torchvision.transforms as tv_t
 import random
 import math
+from customDataset import loadIm,resizeImage,AugmentImage
 
 ################################################################################
 # THIS IS A VERSION OF OUR DATASET CREATION CODE THAT IS MODIFIED TO SUPPORT   #
@@ -15,73 +16,6 @@ import math
 # customDataset.py EXCEPT AT A FEW LOCATIONS, WHICH I WILL HIGHLIGHT WITH      #
 # NOTABLE COMMENTS using the NOTE: format                                      #
 ################################################################################
-
-
-#Loads an image from a given path. (range: 0 to 255)
-#If image has alpha channel, replaces it with white
-def loadIm(targetPath):	#in range 0.0-255.0
-	with torch.no_grad():
-		with Image.open(targetPath) as im:
-			#Handle transparency
-			if im.mode=="RGBA":
-				im.load()
-				background = Image.new("RGB", im.size, (255, 255, 255))
-				background.paste(im, mask=im.split()[3]) # 3 is the alpha channel
-				im2=background
-			else:
-				if(im.mode!="RGB"):
-					im2=im.convert("RGB")
-				else:
-					im2=im
-			imageTensor=torch.moveaxis(torch.Tensor(np.array(im2,copy=True)),2,0)
-			return imageTensor[None]
-
-#Scales the shortest side of the image to target size, then random crops the other dim to match
-#Performs matching scale/crop to mask (if present)
-def resizeImage(inputImage,inputMask=None,targetWidth=128,targetHeight=128):
-	with torch.no_grad():
-		if(inputImage.size(2)>inputImage.size(3)):#height bigger than width
-			#Resize if needed
-			if(inputImage.size(3)!=targetWidth):
-				newWidth=targetWidth
-				newHeight=math.ceil(inputImage.size(2)*(targetWidth/inputImage.size(3)))
-
-
-				inputImage=F.interpolate(inputImage,size=(newHeight,newWidth),mode="bilinear",antialias="bilinear")
-				if(not(inputMask is None)):
-					inputMask=F.interpolate(inputMask,size=(newHeight,newWidth),mode="bilinear",antialias="bilinear")
-
-			#Get random crop offset
-			randomOffset=random.randint(0,inputImage.size(2)-targetHeight)
-
-			#Do the crop
-			inputImage=inputImage[:,:,randomOffset:randomOffset+targetHeight,:]
-			if(not(inputMask is None)):
-				inputMask=inputMask[:,:,randomOffset:randomOffset+targetHeight,:]
-
-		else:
-			#Resize if needed
-			if(inputImage.size(2)!=targetHeight):
-				newWidth=math.ceil(inputImage.size(3)*(targetHeight/inputImage.size(2)))
-				newHeight=targetHeight
-
-				inputImage=F.interpolate(inputImage,size=(newHeight,newWidth),mode="bilinear",antialias="bilinear")
-				if(not(inputMask is None)):
-					inputMask=F.interpolate(inputMask,size=(newHeight,newWidth),mode="bilinear",antialias="bilinear")
-
-			#Get random crop offset
-			randomOffset=random.randint(0,inputImage.size(3)-targetWidth)
-
-			#Do the crop
-			inputImage=inputImage[:,:,:,randomOffset:randomOffset+targetWidth]
-			if(not(inputMask is None)):
-				inputMask=inputMask[:,:,:,randomOffset:randomOffset+targetWidth]
-
-		return inputImage,inputMask
-
-#Pass to the dataloader to stop it from trying to merge the tensors automatically
-def custom_collate(original_batch):
-  return original_batch
 
 
 # NOTE: Now, this method takes in two additional inputs, x and y, which
@@ -149,77 +83,7 @@ def HandleMaskConversion(inputMask,x,y):
   # returns our new 4 channel tensor
   return torch.cat([bgClicked, catClicked, dogClicked, nClicked], dim=1)
 
-def AugmentImage(inputImage,inputMask=None,skipAugments=False):
-  embed_xFlip=0
-  embed_yFlip=0
-  embed_rotAmount=0
-  embed_hueShift=0
-  embed_rangeCompress=0
-  embed_freqDomainNoise=0
 
-
-  augment_chance=1.0/6
-
-  #Make a clean copy of the image
-  imageClean=inputImage+0
-
-  if(not skipAugments):
-    #X-flip:
-    if(bool(random.getrandbits(1))):
-      embed_xFlip=1
-      inputImage=inputImage.flip(3)
-      imageClean=imageClean.flip(3)
-      if(not(inputMask is None)):
-        inputMask=inputMask.flip(3)
-
-    #Y-flip:
-    if(random.uniform(0, 1)<augment_chance):
-      if(bool(random.getrandbits(1))):
-        embed_yFlip=1
-        inputImage=inputImage.flip(2)
-        imageClean=imageClean.flip(2)
-        if(not(inputMask is None)):
-          inputMask=inputMask.flip(2)
-
-    #Rotate:
-    if(random.uniform(0, 1)<augment_chance):
-      embed_rotAmount=random.uniform(-1,1)
-      inputImage=tv_t.functional.rotate(inputImage,embed_rotAmount*90)
-      imageClean=tv_t.functional.rotate(imageClean,embed_rotAmount*90)
-      if(not(inputMask is None)):
-        inputMask=tv_t.functional.rotate(inputMask,embed_rotAmount*90,fill=[1,0,0])
-
-    #Hue shift:
-    if(random.uniform(0, 1)<augment_chance):
-      embed_hueShift=random.uniform(-1,1)
-      inputImage=(inputImage+1)*0.5
-      inputImage=tv_t.functional.adjust_hue(inputImage,embed_hueShift*0.5)
-      inputImage=(inputImage*2)-1
-
-    #Range compression:
-    if(random.uniform(0, 1)<augment_chance):
-      embed_rangeCompress=random.uniform(-1,1)
-      inputImage=inputImage*(1.0-abs(embed_rangeCompress))
-      inputImage=inputImage+embed_rangeCompress
-
-    #Frequency Domain Noise:
-    if(random.uniform(0, 1)<augment_chance):
-        #Convert to frequency domain
-        fft_tensor = torch.fft.fft2(inputImage)
-
-        embed_freqDomainNoise=random.uniform(0,0.1)
-
-        #Add Gaussian noise to real/imaginary part
-        noise_real = 1+(torch.randn_like(fft_tensor.real) * embed_freqDomainNoise)
-        noise_imag = 1+(torch.randn_like(fft_tensor.imag) * embed_freqDomainNoise)
-        noise = torch.complex(noise_real, noise_imag)
-        fft_tensor = fft_tensor * noise
-
-        #Convert back to spatial domain (and clip within range
-        inputImage = torch.fft.ifft2(fft_tensor).real
-        inputImage = torch.clamp(inputImage, -1.0, 1.0)
-
-  return inputImage,imageClean,inputMask,[embed_xFlip,embed_yFlip,embed_rotAmount,embed_hueShift,embed_rangeCompress,embed_freqDomainNoise]
 
 
 class imageLoaderDataset(torch.utils.data.Dataset):

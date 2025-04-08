@@ -18,6 +18,7 @@ from PIL import Image
 import json
 import math
 from safetensors.torch import load_model, save_model
+from models.CLIP_Segmenter import extract_CLIP_features
 
 ############################### HYPERPARAMETERS ###############################
 epochs = 20
@@ -29,47 +30,6 @@ eps=1e-5
 
 # FIRST, WE HAVE OUR SLIGHTLY MODIFIED CLIP ARCHITECTURE TO DEAL WITH THE
 # PROMPT POINT:
-
-#Extracts the image tokens from a clip model, rather than just the class token.
-#Should match the code in:
-#	https://github.com/openai/CLIP/blob/main/clip/model.py
-#		clip/model.py -> VisionTransformer -> forward
-def extract_CLIP_features(image_batch,model):
-	#The model seems to be loaded as f16.
-	#Keep note of the input dtype, and temporarely cast it to fp16 for the clip pass.
-	dtype_original=image_batch.dtype
-	image_batch=image_batch.to(model.dtype)
-
-	vision_model = model.visual
-	x = vision_model.conv1(image_batch)#[batch, width, grid, grid]
-	batch, width, grid = x.shape[0], x.shape[1], x.shape[2]
-
-	#prepare for transformer
-	x = x.reshape(batch, width, -1).permute(0, 2, 1)  # [batch, grid^2, width]
-	x = torch.cat([vision_model.class_embedding.expand(batch, 1, -1), x], dim=1)
-	x += vision_model.positional_embedding
-	x = vision_model.ln_pre(x)
-
-	#run through transformer
-	x = x.permute(1, 0, 2)  #[seq_len, batch, width]
-	x=x.to(model.dtype)
-	x = vision_model.transformer(x)
-	x = x.permute(1, 0, 2)  #[batch, seq_len, width]
-
-	#get clip features (ignore class token)
-	patch_embeddings = x[:, 1:, :]  #[batch, grid^2, width]
-
-	#apply final projection
-	patch_embeddings = vision_model.ln_post(patch_embeddings)
-	if vision_model.proj is not None:
-		patch_embeddings = patch_embeddings @ vision_model.proj
-
-	#un-flatten back into width/height
-	output=patch_embeddings.permute(0, 2, 1).view(batch, -1, grid, grid)
-
-	#Cast back into our original dtype
-	output=output.to(dtype_original)
-	return output
 
 # this is the exact same structure as in CLIP_Segmenter.py, except we double
 # the input dimensions (as latent image and point map are concatendated before

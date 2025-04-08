@@ -27,15 +27,6 @@ from matplotlib.ticker import PercentFormatter
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-#Helper func
-def get_files_in_folder(folder_path):
-	file_list = []
-	for root, dirs, files in os.walk(folder_path):
-		for file in files:
-			full_path = os.path.join(root, file)
-			file_list.append(full_path)
-	return file_list
-
 #Name of each perturbation
 perturbNames=[
 	"Gaussian_pixel_noise",
@@ -82,7 +73,7 @@ def test_model(modelType,modelPath):
 	clip_image_norm=tv_t.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
 
 	#Put toghether test-set data:
-	dataPairs_Test=get_files_in_folder("Dataset/Test/color")
+	dataPairs_Test=util.get_files_in_folder("Dataset/Test/color")
 	for i in range(len(dataPairs_Test)):
 		#Labels seem to always be pngs
 		labelImageName=Path(dataPairs_Test[i]).stem+".png"

@@ -101,22 +101,32 @@ def resizeImage(inputImage,inputMask=None,targetWidth=128,targetHeight=128):
 
 		return inputImage,inputMask
 
-#Pass to the dataloader to stop it from trying to merge the tensors automatically
-def custom_collate(original_batch):
-	return original_batch
 
 
-#Takes in mask images where:
-#	Black is background
-#	Red is cat
-#	Green is dog
-#	White is border
-#And turns then into a mask where:
-#	Channel 0 is background
-#	Channel 1 is cat
-#	Channel 2 is dog
-#	(border pixels are converted into either cat or dog, depending on what was most present in the image)
+
 def HandleMaskConversion(inputMask):
+	"""
+	Converts the segmentation masks that come with the dataset,
+		into the format needed by the training scripts
+
+	Specificaly, takes in mask images where:
+		Black is background
+		Red is cat
+		Green is dog
+		White is border
+	And turns then into a one-hot encoded segmentation mask where:
+		Channel 0 is background
+		Channel 1 is cat
+		Channel 2 is dog
+		(border pixels are converted into either cat or dog, depending on what was most present in the image)
+
+	Args:
+		inputMask (Tensor): Tensor of size (1,3,height,width) holding a segmentation mask from the original dataset in the range 0-1.
+
+	Returns:
+		(Tensor): Converted Mask
+	"""
+
 	#Get white pixels (border)
 	borderMask=(inputMask[:,2:3,:,:]>0.5).to(torch.float32)
 
@@ -143,6 +153,13 @@ def HandleMaskConversion(inputMask):
 
 class imageLoaderDataset(torch.utils.data.Dataset):
 	def __init__(self, dataPairs,skipAugments=False,targetRes=128):
+		"""
+		Args:
+			dataPairs (list): List of string tuples holding the string path for each image and its mask respectively.
+			skipAugments (bool): Whether or not to skip applying augmentations
+			targetRes (int): The base resolution to rescale images to.
+
+		"""
 		#Initialization
 		self.dataPairs = dataPairs
 		self.skipAugments=skipAugments

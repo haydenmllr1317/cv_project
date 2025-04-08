@@ -23,20 +23,9 @@ from safetensors.torch import load_model, save_model
 import perturbUtil
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
-
+import argparse
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-#Helper func
-def get_files_in_folder(folder_path):
-	file_list = []
-	for root, dirs, files in os.walk(folder_path):
-		for file in files:
-			full_path = os.path.join(root, file)
-			file_list.append(full_path)
-	return file_list
-
-
 
 
 def evaluate_model(model_type,model_path,target_split="Test"):
@@ -45,13 +34,13 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 	Provides the dice score of the model on the dataset overall, as well as on cats and dogs specifically
 
 	Args:
-		model_type (string): The type of model. One of either: ["CLIP","UNet","AutoEnc"]
+		model_type (string): The type of model. One of either: ["CLIP","UNet"]
 		model_path (string): Path to the models checkpoint
 		target_split (string): Dataset split to test on. One of either: ["Train","Validation","Test"]
 
 	"""
 
-	assert model_type in ["CLIP","UNet","AutoEnc"]
+	assert model_type in ["CLIP","UNet"]
 	assert target_split in ["Train","Validation","Test"]
 
 	#Load model
@@ -73,7 +62,7 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 	clip_image_norm=tv_t.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
 
 	#Create train/dev splits with a 6:1 ratio
-	dataPairs_Train=get_files_in_folder("Dataset/TrainVal/color")
+	dataPairs_Train=util.get_files_in_folder("Dataset/TrainVal/color")
 	dataPairs_Train.sort()
 	random.seed(0)
 	random.shuffle(dataPairs_Train)
@@ -96,7 +85,7 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 		target_set=dataPairs_Dev
 	elif(target_split=="Test"):
 		#Put toghether test-set data:
-		dataPairs_Test=get_files_in_folder("Dataset/Test/color")
+		dataPairs_Test=util.get_files_in_folder("Dataset/Test/color")
 		for i in range(len(dataPairs_Test)):
 			#Labels seem to always be pngs
 			labelImageName=Path(dataPairs_Test[i]).stem+".png"
@@ -167,7 +156,7 @@ def evaluate_model(model_type,model_path,target_split="Test"):
 
 
 
-
+"""
 with torch.no_grad():
 	#For UNet
 	#evaluate_model(model_type="UNet",model_path="Runs/UNet/Run0/Checkpoints/gs10047_e50.safetensors",target_split="Train")
@@ -177,4 +166,26 @@ with torch.no_grad():
 	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Train")
 	#evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Validation")
 	evaluate_model(model_type="CLIP",model_path="Runs/Clip/Run0/Checkpoints/gs3349_e16.safetensors",target_split="Test")
+"""
+def main():
+	#Create parser
+	parser = argparse.ArgumentParser(description="Evaluate a machine learning model.")
 
+	#Add arguments and default values
+	parser.add_argument('--model_type', type=str, default='UNet',
+						choices=['CLIP', 'UNet'],
+						help='Model type (default: UNet)')
+    parser.add_argument('--model_path', type=str, default="",
+						help='Path to model checkpoint (default: None)')
+	parser.add_argument('--target_split', type=str, default='Test',
+						choices=['Train', 'Validation', 'Test'],
+						help='Dataset split to evaluate (default: Test)')
+
+    args = parser.parse_args()
+
+    #Run model evaluation
+    with torch.no_grad():
+		evaluate_model(args.model_type, args.model_path, args.target_split)
+
+if __name__ == "__main__":
+    main()

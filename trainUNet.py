@@ -14,33 +14,39 @@ import util
 import json
 
 from safetensors.torch import load_model, save_model
+import argparse
 
-#TODO:
-#	ga?
-#	better logging
-#	console arguments
-#	cleanup
 
-#device
+#Set the device, gpu if available, cpu otherwise
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-#Helper func
-def get_files_in_folder(folder_path):
-	file_list = []
-	for root, dirs, files in os.walk(folder_path):
-		for file in files:
-			full_path = os.path.join(root, file)
-			file_list.append(full_path)
-	return file_list
+def train_model(
+	num_epochs=10,
+	batch_size = 16,
+	maxSteps=10000,
+	lr_max=1e-3,
+	lr_drop_multiplier=0.1,
+	unet_depth=5
+	):
+	"""
+	Performs a U-Net training run.
 
-def test():
-	model = UNet(dimIn=3, dimOut=3, depth=5).to(device)
-	optimizer = optim.Adam(model.parameters(), lr=0.001)
+	Args:
+		output (int): The number of epochs to train for.
+		batch_size (int): The training batch size.
+		maxSteps (int): The max number of optimizer steps. (only used for lr scheduling)
+		lr_max (float): The starting learning rate.
+		lr_drop_multiplier (float): How much to drop the learning rate by the end of the lr schedule.
+		unet_depth (int): The depth of the u-net.
+	"""
 
+	#Create model/optimizer and prepare for training
+	model = UNet(dimIn=3, dimOut=3, depth=unet_depth).to(device)
+	optimizer = optim.Adam(model.parameters(), lr=lr_max)
 	model.train()
 
 	#Create train/dev splits with a 6:1 ratio
-	dataPairs_Train=get_files_in_folder("Dataset/TrainVal/color")
+	dataPairs_Train=util.get_files_in_folder("Dataset/TrainVal/color")
 	dataPairs_Train.sort()
 	random.seed(0)
 	random.shuffle(dataPairs_Train)
@@ -58,11 +64,8 @@ def test():
 		dataPairs_Dev[i]=(dataPairs_Dev[i],f"Dataset/TrainVal/label/{labelImageName}")
 
 
-	num_epochs = 100
-	batch_size = 16
-	maxSteps=10000
-	lr_max=1e-3
-	lr_min=lr_max*0.1	#1 order of magnitude drop
+	#Set minimum learning rate
+	lr_min=lr_max*lr_drop_multiplier
 
 	#Train set dataset/loader
 	train_dataset = imageLoaderDataset(dataPairs_Train)
@@ -80,6 +83,7 @@ def test():
 
 	loss_fn=torch.nn.CrossEntropyLoss()
 
+	#For each epoch
 	for epoch in range(num_epochs):
 
 		running_loss = 0
@@ -126,16 +130,12 @@ def test():
 					target_indices_dev = torch.argmax(targetMask_dev, dim=1)
 					dev_loss = loss_fn(outputs_dev, target_indices_dev)
 
-					#print(f'Dev Loss: {dev_loss.item():.4f}')
-
 					#Switch model back to train mode
 					model.train()
 
 					#Metrics:
 					IoU_train_set=evalUtil.get_IoU(util.logit_to_onehot(outputs),targetMask)
 					IoU_dev_set=evalUtil.get_IoU(util.logit_to_onehot(outputs_dev),targetMask_dev)
-					#print(f'Train IoU: {IoU_train_set:.4f}')
-					#print(f'Dev IoU: {IoU_dev_set:.4f}')
 
 					#Record run metrics (train):
 					runLog["LossTrain"].append(loss.item())
@@ -178,5 +178,36 @@ def test():
 
 
 
-test()
+def main():
+	#Create parser
+	parser = argparse.ArgumentParser(description='Train U-Net Model')
 
+    #Add arguments and default values
+	parser.add_argument('--num_epochs', type=int, default=10,
+						help='Number of training epochs (default: 10)')
+	parser.add_argument('--batch_size', type=int, default=16,
+						help='Training batch size (default: 16)')
+	parser.add_argument('--max_steps', type=int, default=10000, dest='maxSteps',
+						help='Maximum number of training steps, for lr scheduling (default: 10000)')
+	parser.add_argument('--lr_max', type=float, default=1e-3,
+						help='Starting learning rate (default: 1e-3)')
+	parser.add_argument('--lr_drop_multiplier', type=float, default=0.1,
+						help='How much to drop the learning rate by the end of the lr schedule (default: 0.1)')
+	parser.add_argument('--unet_depth', type=int, default=5,
+						help='Depth of the U-Net (default: 5)')
+
+
+	args = parser.parse_args()
+
+    #Do the training run
+	train_model(
+		num_epochs=args.num_epochs,
+		batch_size=args.batch_size,
+		maxSteps=args.maxSteps,
+		lr_max=args.lr_max,
+		lr_drop_multiplier=args.lr_drop_multiplier,
+		unet_depth=args.unet_depth
+	)
+
+if __name__ == '__main__':
+    main()
