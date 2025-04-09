@@ -24,7 +24,7 @@ import argparse
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def train_model(
-    num_epochs=10,
+    num_epochs=50,
     batch_size = 16,
     maxSteps=10000,
     lr_max=1e-3,
@@ -186,8 +186,8 @@ def main():
     parser = argparse.ArgumentParser(description='Train U-Net Model')
 
     #Add arguments and default values
-    parser.add_argument('--num_epochs', type=int, default=10,
-                        help='Number of training epochs (default: 10)')
+    parser.add_argument('--num_epochs', type=int, default=50,
+                        help='Number of training epochs (default: 50)')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Training batch size (default: 16)')
     parser.add_argument('--max_steps', type=int, default=10000, dest='maxSteps',

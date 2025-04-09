@@ -27,7 +27,7 @@ import argparse
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def train_model(
-    num_epochs=20,
+    num_epochs=16,
     batch_size = 16,
     maxSteps=3340,
     lr_max=1e-3,
@@ -203,8 +203,8 @@ def main():
     parser = argparse.ArgumentParser(description='Train CLIP Model')
 
     #Add arguments and default values
-    parser.add_argument('--num_epochs', type=int, default=20,
-                        help='Number of training epochs (default: 20)')
+    parser.add_argument('--num_epochs', type=int, default=16,
+                        help='Number of training epochs (default: 16)')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Training batch size (default: 16)')
     parser.add_argument('--max_steps', type=int, default=3340, dest='maxSteps',

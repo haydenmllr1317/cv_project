@@ -36,6 +36,7 @@ def plot_trainDev_loss(run_log,smoothing=0.1,output_path=None,model_name=""):
         model_name (string): Optional name for the model
     """
     plt.figure(figsize=(10, 6))
+    plt.rcParams.update({'font.size': 14})
 
     #Apply ema smoothing to the loss for cleaner graph
     lossTrain_smooth=ema_smoothed(run_log["LossTrain"],smoothing)
@@ -67,8 +68,7 @@ def plot_trainDev_loss(run_log,smoothing=0.1,output_path=None,model_name=""):
     if(output_path is None):
         plt.show()
     else:
-        plt.rcParams.update({'font.size': 14})
-        plt.savefig(output_path,bbox_inches='tight', pad_inches = 0)
+        plt.savefig(output_path,bbox_inches='tight', pad_inches = 0.1)
 
 
 def plot_trainDev_IoU(run_log,smoothing=0.1,output_path=None,model_name=""):
@@ -82,6 +82,7 @@ def plot_trainDev_IoU(run_log,smoothing=0.1,output_path=None,model_name=""):
         model_name (string): Optional name for the model
     """
     plt.figure(figsize=(10, 6))
+    plt.rcParams.update({'font.size': 14})
 
     #Apply ema smoothing to the loss for cleaner graph
     lossTrain_smooth=ema_smoothed(run_log["IoU_Train"],smoothing)
@@ -113,8 +114,7 @@ def plot_trainDev_IoU(run_log,smoothing=0.1,output_path=None,model_name=""):
     if(output_path is None):
         plt.show()
     else:
-        plt.rcParams.update({'font.size': 14})
-        plt.savefig(output_path,bbox_inches='tight', pad_inches = 0)
+        plt.savefig(output_path,bbox_inches='tight', pad_inches = 0.1)
 
 
 def plot_IoU_loss_dual(runLog_a,runLog_b,smoothing=0.1):
