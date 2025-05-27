@@ -18,11 +18,11 @@ from safetensors.torch import load_model, save_model
 
 #Utils
 import random
-import evalUtil
+import helpful.evalUtil as evalUtil
 import util
 import json
 import argparse
-import perturbUtil
+import helpful.perturbUtil as perturbUtil
 
 #Plots
 import matplotlib.pyplot as plt

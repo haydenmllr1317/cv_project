@@ -9,10 +9,10 @@ import math
 import random
 import customDataset
 from customDataset import imageLoaderDataset
-import evalUtil
-from evalUtil import get_IoU
-from evalUtil import get_dice_coef
-from evalUtil import get_pixel_acc
+import helpful.evalUtil as evalUtil
+from helpful.evalUtil import get_IoU
+from helpful.evalUtil import get_dice_coef
+from helpful.evalUtil import get_pixel_acc
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
